@@ -1,0 +1,42 @@
+# --- 系统文件 ---
+.DS_Store
+Thumbs.db
+
+# --- 编译与构建 ---
+target/
+out/
+build/
+*.class
+*.log
+*.tmp
+
+# --- Maven Wrapper (保留核心 jar 以支持跨平台运行) ---
+.mvn/
+!/.mvn/wrapper/maven-wrapper.jar
+
+# --- 敏感配置文件 (可选，建议忽略) ---
+src/main/resources/application.properties
+src/main/resources/application.yml
+.env
+
+# --- IDEs ---
+### IntelliJ IDEA ###
+.idea/
+*.iml
+*.iws
+*.ipr
+
+### VS Code ###
+.vscode/
+
+### STS / Eclipse ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+
+# --- 帮助文档 ---
+HELP.md
