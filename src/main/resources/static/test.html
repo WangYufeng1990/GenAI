@@ -7,11 +7,11 @@
         :root { --primary-color: #007bff; --bg-color: #f4f7f6; --chat-bg: #ffffff; }
         body { font-family: 'PingFang SC', sans-serif; background-color: var(--bg-color); margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
 
-        /* 聊天容器 */
+        /* Chat container */
         #chat-container { width: 90%; max-width: 600px; height: 85vh; background: var(--chat-bg); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
         #header { padding: 15px; background: var(--primary-color); color: white; text-align: center; font-weight: bold; }
 
-        /* 消息区域 */
+        /* Message area */
         #chat-window { flex: 1; padding: 20px; overflow-y: auto; border-bottom: 1px solid #eee; }
         .message { margin-bottom: 15px; display: flex; }
         .message-content { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 0.95rem; line-height: 1.5; word-wrap: break-word; }
@@ -20,7 +20,7 @@
         .ai-message { justify-content: flex-start; }
         .ai-message .message-content { background-color: #e9ecef; color: #333; }
 
-        /* 思考过程样式 */
+        /* Thought process styles */
         .thought-process {
             color: #888;
             font-style: italic;
@@ -34,7 +34,7 @@
         }
         hr { border: none; border-top: 1px dashed #ccc; margin: 10px 0; }
 
-        /* 输入区域 */
+        /* Input area */
         #input-area { padding: 15px; display: flex; gap: 10px; }
         #user-input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 8px; outline: none; }
         #send-btn { padding: 0 20px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; cursor: pointer; }
@@ -46,13 +46,13 @@
     <div id="header">DeepSeek R1 智能对话</div>
     <div id="chat-window"></div>
     <div id="input-area">
-        <input type="text" id="user-input" placeholder="输入问题（支持 14B 思考过程）..." autocomplete="off">
+        <input type="text" id="user-input" placeholder="输入问题（支持 8B 思考过程）..." autocomplete="off">
         <button id="send-btn">发送</button>
     </div>
 </div>
 
 <script>
-    // 确保 DOM 元素在脚本运行前已存在
+    // Ensure DOM elements exist before script runs
     const chatWindow = document.getElementById('chat-window');
     const userInput = document.getElementById('user-input');
     const sendBtn = document.getElementById('send-btn');
@@ -73,12 +73,12 @@
         const message = userInput.value.trim();
         if (!message) return;
 
-        // 用户消息
+        // User message
         const userDiv = appendMessage('user');
         userDiv.innerText = message;
         userInput.value = '';
 
-        // AI 消息初始化
+        // AI message initialization
         const aiContentDiv = appendMessage('ai');
         sendBtn.disabled = true;
 
@@ -86,16 +86,43 @@
         let fullContent = "";
 
         source.onmessage = function(event) {
-            fullContent += event.data;
+            // EventSource automatically handles the 'data:' prefix
+            // The event.data already contains the actual content
+            const chunk = event.data;
+            
+            // Debug: log each chunk to see what we're receiving
+            console.log('Chunk received:', JSON.stringify(chunk));
+            console.log('Chunk length:', chunk.length);
+            console.log('Is space only:', chunk === ' ');
+            console.log('Is empty:', chunk === '');
+            
+            // Always append chunk first (before decoding) to preserve streaming order
+            fullContent += chunk;
+            
+            // Then decode the entire accumulated content
+            let decodedContent;
+            try {
+                // First replace + with %20, then decode
+                let contentForDecoding = fullContent.replace(/\+/g, '%20');
+                decodedContent = decodeURIComponent(contentForDecoding);
+            } catch (e) {
+                decodedContent = fullContent; // fallback if decoding fails
+            }
+            
+            // Debug: log full content so far
+            console.log('Full content so far:', JSON.stringify(fullContent));
+            console.log('Decoded content so far:', JSON.stringify(decodedContent));
 
-            // 处理思考过程标签：先转义，再替换为 HTML
-            let displayHTML = fullContent
+            // Handle thinking process tags: escape first, then replace with HTML
+            let displayHTML = decodedContent
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
-                .replace(/&lt;think&gt;/g, "<div class='thought-process'><strong>🤔 思考中...</strong><br>")
+                .replace(/&lt;think&gt;/g, "<div class='thought-process'><strong>🤔 Thinking...</strong><br>")
                 .replace(/&lt;\/think&gt;/g, "</div><hr>")
-                .replace(/\n/g, "<br>");
+                .replace(/\n/g, "<br>")
+                .replace(/  /g, " &nbsp;") // Preserve multiple spaces
+                .replace(/ /g, "&#32;"); // Preserve single spaces
 
             aiContentDiv.innerHTML = displayHTML;
             chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -107,7 +134,7 @@
         };
     }
 
-    // 事件绑定
+    // Event binding
     sendBtn.addEventListener('click', sendMessage);
     userInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') sendMessage();

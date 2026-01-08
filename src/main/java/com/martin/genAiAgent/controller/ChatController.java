@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.net.URLEncoder;
 
 @RestController
 public class ChatController {
@@ -52,23 +53,29 @@ public class ChatController {
                 .uri("/api/chat")
                 .bodyValue(requestBody)
                 .retrieve()
-                .bodyToFlux(Map.class) // Map each line of JSON to Map
+                .bodyToFlux(Map.class)
                 .map(map -> {
-                    StringBuilder output = new StringBuilder();
-                    
                     // /api/chat endpoint returns message object containing role, content and thinking
                     @SuppressWarnings("unchecked")
                     Map<String, Object> messageObj = (Map<String, Object>) map.get("message");
                     if (messageObj != null) {
+                        StringBuilder output = new StringBuilder();
+                        
                         // Check if thinking field exists
                         String thinking = (String) messageObj.get("thinking");
                         if (thinking != null && !thinking.isEmpty()) {
                             // If first time encountering thinking, output start tag
                             if (!thinkingStarted.get()) {
-                                output.append("<think>");
+                                output.append("</think>");
                                 thinkingStarted.set(true);
                             }
-                            output.append(thinking);
+                            // URL encode thinking content to preserve spaces in SSE
+                            try {
+                                String encodedThinking = URLEncoder.encode(thinking, "UTF-8");
+                                output.append(encodedThinking);
+                            } catch (Exception e) {
+                                output.append(thinking); // fallback
+                            }
                         }
                         
                         // Check if content field exists
@@ -79,12 +86,20 @@ public class ChatController {
                                 output.append("</think>");
                                 thinkingEnded.set(true);
                             }
-                            output.append(content);
+                            // URL encode the content to preserve spaces in SSE
+                            try {
+                                String encodedContent = URLEncoder.encode(content, "UTF-8");
+                                output.append(encodedContent);
+                            } catch (Exception e) {
+                                output.append(content); // fallback
+                            }
                         }
+                        
+                        return output.toString();
                     }
-                    
-                    return output.toString();
-                });
+                    return ""; // Return empty string if no message object
+                })
+                .filter(content -> !content.isEmpty()); // Filter out empty responses
     }
 
     @GetMapping(value = "/stream-simple", produces = "text/event-stream")
@@ -116,16 +131,18 @@ public class ChatController {
                     if (messageObj != null) {
                         String content = (String) messageObj.get("content");
                         if (content != null && !content.isEmpty()) {
-                            // Add assistant response to history
-                            Map<String, String> assistantMessage = new HashMap<>();
-                            assistantMessage.put("role", "assistant");
-                            assistantMessage.put("content", content);
-                            history.add(assistantMessage);
+                            // URL encode the content to preserve spaces in SSE
+                            try {
+                                String encodedContent = URLEncoder.encode(content, "UTF-8");
+                                return encodedContent;
+                            } catch (Exception e) {
+                                return content; // fallback
+                            }
                         }
-                        return content != null ? content : "";
                     }
-                    return "";
-                });
+                    return ""; // Return empty string instead of null to avoid NPE
+                })
+                .filter(content -> content != null && !content.isEmpty());
     }
 
     @GetMapping(value = "/stream-ai", produces = "text/event-stream")
@@ -141,10 +158,14 @@ public class ChatController {
                 .messages(messages)
                 .stream()
                 .content()
-                .doOnNext(content -> {
-                    // Add assistant response to memory
-                    if (content != null && !content.isEmpty()) {
-                        chatMemory.add(sessionId, new org.springframework.ai.chat.messages.AssistantMessage(content));
+                .filter(content -> content != null && !content.isEmpty())
+                .map(content -> {
+                    // URL encode the content to preserve spaces in SSE
+                    try {
+                        String encodedContent = URLEncoder.encode(content, "UTF-8");
+                        return encodedContent;
+                    } catch (Exception e) {
+                        return content; // fallback
                     }
                 });
     }
