@@ -1,7 +1,9 @@
 package com.martin.genAiAgent.controller;
 
-import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -9,15 +11,23 @@ import java.util.Map;
 import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 public class ChatController {
 
     private final WebClient webClient = WebClient.create("http://localhost:11434");
-    private final ChatModel chatModel;
+    private final ChatClient chatClient;
+    
+    // Store conversation history for each session
+    private final Map<String, List<Map<String, String>>> conversationHistory = new ConcurrentHashMap<>();
+    
+    // Spring AI memory management
+    private final ChatMemory chatMemory = new InMemoryChatMemory();
 
     public ChatController(ChatModel chatModel) {
-        this.chatModel = chatModel;
+        this.chatClient = ChatClient.builder(chatModel).build();
     }
 
     @GetMapping(value = "/stream", produces = "text/event-stream")
@@ -78,17 +88,21 @@ public class ChatController {
     }
 
     @GetMapping(value = "/stream-simple", produces = "text/event-stream")
-    public Flux<String> streamSimple(@RequestParam String message) {
+    public Flux<String> streamSimple(@RequestParam String message, @RequestParam(defaultValue = "default") String sessionId) {
         // Simple version: only return content, without thinking process (using WebClient)
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "deepseek-r1:8b");
-        requestBody.put("stream", true);
+        // Get or create conversation history for this session
+        List<Map<String, String>> history = conversationHistory.computeIfAbsent(sessionId, k -> new ArrayList<>());
         
-        // Construct message list
+        // Add user message to history
         Map<String, String> userMessage = new HashMap<>();
         userMessage.put("role", "user");
         userMessage.put("content", message);
-        requestBody.put("messages", java.util.Arrays.asList(userMessage));
+        history.add(userMessage);
+        
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", "deepseek-r1:8b");
+        requestBody.put("stream", true);
+        requestBody.put("messages", history);
         
         return webClient.post()
                 .uri("/api/chat")
@@ -101,6 +115,13 @@ public class ChatController {
                     Map<String, Object> messageObj = (Map<String, Object>) map.get("message");
                     if (messageObj != null) {
                         String content = (String) messageObj.get("content");
+                        if (content != null && !content.isEmpty()) {
+                            // Add assistant response to history
+                            Map<String, String> assistantMessage = new HashMap<>();
+                            assistantMessage.put("role", "assistant");
+                            assistantMessage.put("content", content);
+                            history.add(assistantMessage);
+                        }
                         return content != null ? content : "";
                     }
                     return "";
@@ -108,13 +129,23 @@ public class ChatController {
     }
 
     @GetMapping(value = "/stream-ai", produces = "text/event-stream")
-    public Flux<String> streamAi(@RequestParam String message) {
-        // Use Spring AI's ChatModel for simplified implementation
-        // Only return content, without thinking process
-        return chatModel.stream(new org.springframework.ai.chat.prompt.Prompt(List.of(new UserMessage(message))))
-                .map(response -> {
-                    // Extract content from ChatResponse
-                    return response.getResult().getOutput().getContent();
+    public Flux<String> streamAi(@RequestParam String message, @RequestParam(defaultValue = "default") String sessionId) {
+        // Use Spring AI's InMemoryChatMemory with session-based conversation management
+        // Add user message to memory
+        chatMemory.add(sessionId, new org.springframework.ai.chat.messages.UserMessage(message));
+        
+        // Get conversation history from memory
+        List<org.springframework.ai.chat.messages.Message> messages = chatMemory.get(sessionId, Integer.MAX_VALUE);
+        
+        return chatClient.prompt()
+                .messages(messages)
+                .stream()
+                .content()
+                .doOnNext(content -> {
+                    // Add assistant response to memory
+                    if (content != null && !content.isEmpty()) {
+                        chatMemory.add(sessionId, new org.springframework.ai.chat.messages.AssistantMessage(content));
+                    }
                 });
     }
 }
