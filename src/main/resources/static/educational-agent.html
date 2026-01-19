@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>教育资源 AI Agent</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #4a5568;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+        }
+        
+        .form-section {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .results {
+            background: #f7fafc;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 25px;
+        }
+        
+        .video-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .video-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+        }
+        
+        .video-title {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .video-meta {
+            color: #718096;
+            font-size: 0.9em;
+            margin-bottom: 15px;
+        }
+        
+        .video-description {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        .video-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .tag {
+            background: #edf2f7;
+            color: #4a5568;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+        }
+        
+        .feedback-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .rating {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .star {
+            font-size: 1.5em;
+            color: #cbd5e0;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .star:hover,
+        .star.active {
+            color: #f6ad55;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #718096;
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .success {
+            background: #c6f6d5;
+            color: #22543d;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        
+        .video-link {
+            margin: 10px 0;
+        }
+        
+        .link-button {
+            display: inline-block;
+            background: #4299e1;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+        }
+        
+        .link-button:hover {
+            background: #3182ce;
+        }
+        
+        .video-title a:hover {
+            color: #4299e1 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 教育资源 AI Agent</h1>
+        <p style="text-align: center; color: #718096; margin-bottom: 30px;">
+            为特殊儿童提供个性化教育资源推荐的智能助手
+        </p>
+        
+        <div class="form-section">
+            <div class="form-group">
+                <label for="userId">用户ID：</label>
+                <input type="text" id="userId" placeholder="输入用户ID（如：user123）" value="user123">
+            </div>
+            
+            <div class="form-group">
+                <label for="childAge">儿童年龄：</label>
+                <select id="childAge">
+                    <option value="3-4岁">3-4岁</option>
+                    <option value="4-5岁">4-5岁</option>
+                    <option value="5-6岁">5-6岁</option>
+                    <option value="6-7岁">6-7岁</option>
+                    <option value="7-8岁">7-8岁</option>
+                    <option value="8-9岁">8-9岁</option>
+                    <option value="9-10岁">9-10岁</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="specialNeeds">特殊需求类型：</label>
+                <select id="specialNeeds">
+                    <option value="自闭症">自闭症</option>
+                    <option value="多动症">多动症</option>
+                    <option value="学习障碍">学习障碍</option>
+                    <option value="感觉统合障碍">感觉统合障碍</option>
+                    <option value="社交障碍">社交障碍</option>
+                    <option value="语言发育迟缓">语言发育迟缓</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="learningGoal">学习目标：</label>
+                <textarea id="learningGoal" rows="3" placeholder="描述您希望孩子学习的内容...">学习颜色识别和基础认知</textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="maxResults">推荐数量：</label>
+                <select id="maxResults">
+                    <option value="3">3个</option>
+                    <option value="5" selected>5个</option>
+                    <option value="8">8个</option>
+                    <option value="10">10个</option>
+                </select>
+            </div>
+            
+            <button class="btn" onclick="getRecommendations()">🔍 获取推荐</button>
+            <button class="btn" onclick="clearResults()">🗑️ 清空结果</button>
+        </div>
+        
+        <div id="results" class="results" style="display: none;">
+            <h2>📺 推荐的教育资源</h2>
+            <div id="loading" class="loading" style="display: none;">
+                <p>🤖 AI 正在分析需求并搜索合适的资源...</p>
+            </div>
+            <div id="videoList"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentRecommendations = [];
+        
+        function getRecommendations() {
+            const userId = document.getElementById('userId').value;
+            const childAge = document.getElementById('childAge').value;
+            const specialNeeds = document.getElementById('specialNeeds').value;
+            const learningGoal = document.getElementById('learningGoal').value;
+            const maxResults = document.getElementById('maxResults').value;
+            
+            if (!userId || !childAge || !specialNeeds || !learningGoal) {
+                alert('请填写所有必填字段');
+                return;
+            }
+            
+            // 显示加载状态
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('videoList').innerHTML = '';
+            
+            // 构建请求URL
+            const params = new URLSearchParams({
+                userId: userId,
+                childAge: childAge,
+                specialNeeds: specialNeeds,
+                learningGoal: learningGoal,
+                maxResults: maxResults
+            });
+            
+            // 使用EventSource获取流式响应
+            const eventSource = new EventSource(`/agent/educational-resources?${params}`);
+            let fullResponse = '';
+            
+            eventSource.onmessage = function(event) {
+                const chunk = event.data;
+                fullResponse += chunk;
+                
+                // 解码URL编码的内容
+                try {
+                    let decodedContent = fullResponse.replace(/\+/g, '%20');
+                    decodedContent = decodeURIComponent(decodedContent);
+                    
+                    // 显示实时结果
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('videoList').innerHTML = formatRecommendations(decodedContent);
+                } catch (e) {
+                    console.error('解码错误:', e);
+                }
+            };
+            
+            eventSource.onerror = function() {
+                eventSource.close();
+                document.getElementById('loading').style.display = 'none';
+                if (fullResponse === '') {
+                    document.getElementById('videoList').innerHTML = '<div class="error">获取推荐失败，请重试</div>';
+                }
+            };
+        }
+        
+        function formatRecommendations(content) {
+            // 简单的格式化，将每个视频推荐转换为卡片
+            const sections = content.split('---').filter(s => s.trim());
+            return sections.map(section => {
+                const lines = section.trim().split('\n').filter(l => l.trim());
+                const title = lines.find(l => l.includes('📺'))?.replace('📺', '').replace(/\*\*/g, '').trim() || '未知标题';
+                const meta = lines.find(l => l.includes('⏱️')) || '';
+                const description = lines.find(l => l.includes('📝'))?.replace('📝', '').trim() || '';
+                const tags = lines.find(l => l.includes('🏷️'))?.replace('🏷️', '').trim() || '';
+                const score = lines.find(l => l.includes('⭐'))?.replace('⭐', '').trim() || '';
+                const link = lines.find(l => l.includes('🔗'))?.replace('🔗', '').replace('链接：', '').trim() || '';
+                
+                return `
+                    <div class="video-card">
+                        <div class="video-title">
+                            <a href="${link}" target="_blank" style="color: inherit; text-decoration: none;">${title}</a>
+                        </div>
+                        <div class="video-meta">${meta}</div>
+                        <div class="video-description">${description}</div>
+                        <div class="video-tags">
+                            ${tags.split(',').map(tag => `<span class="tag">${tag.trim()}</span>`).join('')}
+                        </div>
+                        <div class="video-link">
+                            <a href="${link}" target="_blank" class="link-button">🔗 观看视频</a>
+                        </div>
+                        <div class="feedback-section">
+                            <span>评价这个推荐：</span>
+                            <div class="rating" onclick="submitRating('${title}', this)">
+                                <span class="star" data-rating="1">⭐</span>
+                                <span class="star" data-rating="2">⭐</span>
+                                <span class="star" data-rating="3">⭐</span>
+                                <span class="star" data-rating="4">⭐</span>
+                                <span class="star" data-rating="5">⭐</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function submitRating(videoTitle, ratingElement) {
+            const rating = parseInt(event.target.dataset.rating);
+            const userId = document.getElementById('userId').value;
+            const videoId = videoTitle.replace(/\s+/g, '_').toLowerCase();
+            
+            // 更新星星显示
+            const stars = ratingElement.querySelectorAll('.star');
+            stars.forEach((star, index) => {
+                if (index < rating) {
+                    star.classList.add('active');
+                } else {
+                    star.classList.remove('active');
+                }
+            });
+            
+            // 发送反馈到服务器
+            fetch(`/agent/feedback?userId=${userId}&videoId=${videoId}&rating=${rating}`, {
+                method: 'POST'
+            })
+            .then(response => response.text())
+            .then(data => {
+                showMessage('感谢您的反馈！AI 会学习您的偏好。', 'success');
+            })
+            .catch(error => {
+                console.error('反馈提交失败:', error);
+                showMessage('反馈提交失败，请重试', 'error');
+            });
+        }
+        
+        function clearResults() {
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('videoList').innerHTML = '';
+            currentRecommendations = [];
+        }
+        
+        function showMessage(message, type) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            document.querySelector('.container').insertBefore(messageDiv, document.querySelector('.form-section'));
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
