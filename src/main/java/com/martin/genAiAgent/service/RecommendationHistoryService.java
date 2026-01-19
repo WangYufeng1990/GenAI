@@ -82,7 +82,12 @@ public class RecommendationHistoryService {
      * 获取最近的推荐历史
      */
     public List<RecommendationHistory> getRecentRecommendations(String userId, int limit) {
-        return recommendationHistoryRepository.findRecentByUserId(userId, limit);
+        List<RecommendationHistory> recommendations = recommendationHistoryRepository.findTop10ByUserIdOrderByCreatedAtDesc(userId);
+        // 如果需要更少的记录，则截取
+        if (limit < 10 && recommendations.size() > limit) {
+            return recommendations.subList(0, limit);
+        }
+        return recommendations;
     }
     
     /**

@@ -27,7 +27,6 @@ import static org.springframework.security.config.Customizer.withDefaults;
 public class SecurityConfig {
     
     private final UserRepository userRepository;
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
     
     @Bean
     public UserDetailsService userDetailsService() {
@@ -51,9 +50,14 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
+                // 静态资源公开访问
+                .requestMatchers("/css/**", "/js/**", "/images/**").permitAll()
+                .requestMatchers("/*.html", "/static/**").permitAll()
+                
                 // 公开访问的端点
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/chat/**").permitAll() // 保持聊天功能公开
+                .requestMatchers("/test/**").permitAll() // 测试端点公开
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/error").permitAll()
                 
@@ -67,7 +71,6 @@ public class SecurityConfig {
                 // 其他请求需要认证
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
             .httpBasic(withDefaults())
             .build();
     }

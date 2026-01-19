@@ -19,9 +19,7 @@ public interface RecommendationHistoryRepository extends JpaRepository<Recommend
     List<RecommendationHistory> findByUserIdAndUserRatingIsNotNullOrderByCreatedAtDesc(String userId);
     
     // 查找用户最近的推荐（限制数量）
-    @Query("SELECT r FROM RecommendationHistory r WHERE r.userId = :userId ORDER BY r.createdAt DESC")
-    List<RecommendationHistory> findRecentByUserId(@Param("userId") String userId, 
-                                                 @Param("limit") int limit);
+    List<RecommendationHistory> findTop10ByUserIdOrderByCreatedAtDesc(String userId);
     
     // 统计用户的平均评分
     @Query("SELECT AVG(r.userRating) FROM RecommendationHistory r WHERE r.userId = :userId AND r.userRating IS NOT NULL")

@@ -446,7 +446,7 @@
             const user = localStorage.getItem('user');
             
             if (!token || !user) {
-                window.location.href = '/login.html';
+                showLoginPrompt();
                 return false;
             }
             
@@ -455,6 +455,27 @@
             document.getElementById('userId').value = userInfo.id;
             
             return true;
+        }
+        
+        function showLoginPrompt() {
+            const container = document.querySelector('.container');
+            if (container) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 60px 20px;">
+                        <h1 style="color: #4a5568; margin-bottom: 30px;">欢迎使用教育资源 AI Agent</h1>
+                        <p style="color: #718096; margin-bottom: 40px; font-size: 18px;">
+                            请先登录以使用个性化教育资源推荐功能
+                        </p>
+                        <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                            <a href="/login.html" class="btn" style="text-decoration: none; display: inline-block;">🔐 登录</a>
+                            <a href="/register.html" class="btn" style="text-decoration: none; display: inline-block; background: #48bb78;">📝 注册新账号</a>
+                        </div>
+                        <p style="margin-top: 30px; color: #a0aec0; font-size: 14px;">
+                            还没有账号？<a href="/register.html" style="color: #4299e1;">立即注册</a>
+                        </p>
+                    </div>
+                `;
+            }
         }
         
         function logout() {
