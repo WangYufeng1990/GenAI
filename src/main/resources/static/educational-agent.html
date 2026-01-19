@@ -210,11 +210,45 @@
         .video-title a:hover {
             color: #4299e1 !important;
         }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logout-btn {
+            background: #e53e3e;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .logout-btn:hover {
+            background: #c53030;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎓 教育资源 AI Agent</h1>
+        <div class="header">
+            <h1>🎓 教育资源 AI Agent</h1>
+            <div class="user-info">
+                <span id="userInfo"></span>
+                <button class="btn" onclick="goToHistory()">📊 历史记录</button>
+                <button class="btn logout-btn" onclick="logout()">退出登录</button>
+            </div>
+        </div>
         <p style="text-align: center; color: #718096; margin-bottom: 30px;">
             为特殊儿童提供个性化教育资源推荐的智能助手
         </p>
@@ -404,6 +438,101 @@
                 console.error('反馈提交失败:', error);
                 showMessage('反馈提交失败，请重试', 'error');
             });
+        }
+        
+        // 认证相关函数
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            if (!token || !user) {
+                window.location.href = '/login.html';
+                return false;
+            }
+            
+            const userInfo = JSON.parse(user);
+            document.getElementById('userInfo').textContent = `👤 ${userInfo.username} (${userInfo.role})`;
+            document.getElementById('userId').value = userInfo.id;
+            
+            return true;
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
+        
+        function goToHistory() {
+            window.location.href = '/user-history.html';
+        }
+        
+        function getAuthHeaders() {
+            const token = localStorage.getItem('token');
+            return {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+        }
+        
+        // 页面加载时检查认证
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkAuth()) {
+                return;
+            }
+        });
+        
+        // 修改获取推荐的函数，添加认证头
+        function getRecommendations() {
+            if (!checkAuth()) {
+                return;
+            }
+            
+            const userId = document.getElementById('userId').value;
+            const childAge = document.getElementById('childAge').value;
+            const specialNeeds = document.getElementById('specialNeeds').value;
+            const learningGoal = document.getElementById('learningGoal').value;
+            const maxResults = document.getElementById('maxResults').value;
+            
+            // 显示加载状态
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('videoList').innerHTML = '';
+            
+            // 构建请求URL
+            const params = new URLSearchParams({
+                userId: userId,
+                childAge: childAge,
+                specialNeeds: specialNeeds,
+                learningGoal: learningGoal,
+                maxResults: maxResults
+            });
+            
+            // 使用EventSource进行流式接收
+            const eventSource = new EventSource(`/agent/educational-resources?${params.toString()}`);
+            
+            let fullResponse = '';
+            
+            eventSource.onmessage = function(event) {
+                const content = event.data;
+                fullResponse += content;
+                
+                // 实时更新显示
+                document.getElementById('videoList').innerHTML = formatRecommendations(fullResponse);
+            };
+            
+            eventSource.onerror = function(event) {
+                console.error('EventSource错误:', event);
+                document.getElementById('loading').style.display = 'none';
+                
+                if (fullResponse.trim() === '') {
+                    document.getElementById('videoList').innerHTML = '<div class="error">获取推荐失败，请重试</div>';
+                }
+            };
+            
+            eventSource.onopen = function(event) {
+                console.log('EventSource连接成功');
+            };
         }
         
         function clearResults() {

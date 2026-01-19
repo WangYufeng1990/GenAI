@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户历史 - 教育资源 AI Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .stats-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .history-section {
+            margin-top: 30px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .history-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .history-info {
+            flex: 1;
+        }
+        
+        .history-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .history-meta {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .history-rating {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .stars {
+            color: #ffc107;
+        }
+        
+        .rating-badge {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .unrated-badge {
+            background: #6c757d;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c53030;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #fed7d7;
+        }
+        
+        .empty {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 用户历史记录</h1>
+            <div class="user-info">
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="goToMain()">🏠 主页</button>
+                    <button class="nav-btn" onclick="logout()">🚪 退出</button>
+                </div>
+                <span id="userInfo"></span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div id="message"></div>
+            
+            <div class="stats-section" id="statsSection">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalRecommendations">-</div>
+                    <div class="stat-label">总推荐数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="ratedCount">-</div>
+                    <div class="stat-label">已评分数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="averageRating">-</div>
+                    <div class="stat-label">平均评分</div>
+                </div>
+            </div>
+            
+            <div class="history-section">
+                <h2 class="section-title">📚 推荐历史</h2>
+                <div id="historyList" class="loading">加载中...</div>
+            </div>
+            
+            <div class="history-section">
+                <h2 class="section-title">⭐ 已评分内容</h2>
+                <div id="ratedList" class="loading">加载中...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        
+        // 页面加载时检查认证
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkAuth()) {
+                return;
+            }
+            loadUserData();
+        });
+        
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            if (!token || !user) {
+                window.location.href = '/login.html';
+                return false;
+            }
+            
+            currentUser = JSON.parse(user);
+            document.getElementById('userInfo').textContent = `👤 ${currentUser.username} (${currentUser.role})`;
+            return true;
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
+        
+        function goToMain() {
+            window.location.href = '/educational-agent.html';
+        }
+        
+        function getAuthHeaders() {
+            const token = localStorage.getItem('token');
+            return {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+        }
+        
+        async function loadUserData() {
+            try {
+                // 加载统计信息
+                const statsResponse = await fetch(`/agent/stats?userId=${currentUser.id}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (statsResponse.ok) {
+                    const stats = await statsResponse.json();
+                    updateStats(stats);
+                }
+                
+                // 加载推荐历史
+                const historyResponse = await fetch(`/agent/history?userId=${currentUser.id}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (historyResponse.ok) {
+                    const history = await historyResponse.json();
+                    displayHistory(history, 'historyList');
+                }
+                
+                // 加载已评分内容
+                const ratedResponse = await fetch(`/agent/rated-history?userId=${currentUser.id}`, {
+                    headers: getAuthHeaders()
+                });
+                
+                if (ratedResponse.ok) {
+                    const rated = await ratedResponse.json();
+                    displayHistory(rated, 'ratedList');
+                }
+                
+            } catch (error) {
+                console.error('加载用户数据失败:', error);
+                showMessage('加载数据失败，请重试', 'error');
+            }
+        }
+        
+        function updateStats(stats) {
+            document.getElementById('totalRecommendations').textContent = stats.totalRecommendations || 0;
+            document.getElementById('ratedCount').textContent = stats.ratedCount || 0;
+            document.getElementById('averageRating').textContent = stats.averageRating ? 
+                stats.averageRating.toFixed(1) : '-';
+        }
+        
+        function displayHistory(items, containerId) {
+            const container = document.getElementById(containerId);
+            
+            if (!items || items.length === 0) {
+                container.innerHTML = '<div class="empty">暂无记录</div>';
+                return;
+            }
+            
+            container.innerHTML = items.map(item => `
+                <div class="history-item">
+                    <div class="history-info">
+                        <div class="history-title">${item.videoTitle}</div>
+                        <div class="history-meta">
+                            📅 ${new Date(item.createdAt).toLocaleDateString()} | 
+                            🏷️ ${item.sourcePlatform || '未知'} | 
+                            👶 ${item.childAge}岁 | 
+                            🎯 ${item.specialNeeds}
+                        </div>
+                    </div>
+                    <div class="history-rating">
+                        ${item.userRating ? 
+                            `<div class="rating-badge">
+                                <span class="stars">${'⭐'.repeat(item.userRating)}</span>
+                                ${item.userRating}/5
+                            </div>` : 
+                            '<div class="unrated-badge">未评分</div>'
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
