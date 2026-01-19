@@ -125,8 +125,22 @@ public class EducationalResourceAgent {
                                     );
                                     
                                     // 5. 保存推荐历史
-                                    recommendationHistoryService.saveRecommendations(userId, rankedVideos, 
-                                        specialNeeds, childAge, learningGoal);
+                                    List<RecommendationHistory> histories = rankedVideos.stream()
+                                        .map(video -> {
+                                            RecommendationHistory history = new RecommendationHistory();
+                                            history.setUserId(userId);
+                                            history.setVideoId(video.id);
+                                            history.setVideoTitle(video.title);
+                                            history.setVideoUrl(video.videoUrl);
+                                            history.setSourcePlatform(video.source);
+                                            history.setRelevanceScore(video.relevanceScore);
+                                            history.setSpecialNeeds(specialNeeds);
+                                            history.setChildAge(childAge);
+                                            history.setLearningGoal(learningGoal);
+                                            return history;
+                                        })
+                                        .collect(Collectors.toList());
+                                    recommendationHistoryService.saveRecommendations(userId, histories);
                                     
                                     // 6. 缓存结果
                                     cacheService.cacheSearchResults(learningGoal, specialNeeds, childAge, rankedVideos);

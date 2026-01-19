@@ -1,7 +1,6 @@
 package com.martin.genAiAgent.service;
 
 import com.martin.genAiAgent.model.RecommendationHistory;
-import com.martin.genAiAgent.model.VideoResource;
 import com.martin.genAiAgent.repository.RecommendationHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,59 +21,26 @@ public class RecommendationHistoryService {
     /**
      * 保存推荐历史
      */
-    public RecommendationHistory saveRecommendation(String userId, VideoResource video, 
-                                            String specialNeeds, String childAge, 
-                                            String learningGoal) {
-        RecommendationHistory history = new RecommendationHistory();
+    public void saveRecommendation(String userId, RecommendationHistory history) {
         history.setUserId(userId);
-        history.setVideoId(video.getId());
-        history.setVideoTitle(video.getTitle());
-        history.setVideoUrl(video.getVideoUrl());
-        history.setSourcePlatform(video.getSource());
-        history.setRelevanceScore(video.getRelevanceScore());
-        history.setSpecialNeeds(specialNeeds);
-        history.setChildAge(childAge);
-        history.setLearningGoal(learningGoal);
-        
-        RecommendationHistory savedHistory = recommendationHistoryRepository.save(history);
-        log.info("推荐历史已保存: userId={}, videoId={}, score={}", 
-                 userId, video.getId(), video.getRelevanceScore());
-        
-        return savedHistory;
+        recommendationHistoryRepository.save(history);
+        log.info("保存推荐历史: userId={}, videoId={}", userId, history.getVideoId());
     }
     
     /**
      * 批量保存推荐历史
      */
-    public void saveRecommendations(String userId, List<VideoResource> videos, 
-                               String specialNeeds, String childAge, 
-                               String learningGoal) {
-        List<RecommendationHistory> histories = videos.stream()
-            .map(video -> {
-                RecommendationHistory history = new RecommendationHistory();
-                history.setUserId(userId);
-                history.setVideoId(video.getId());
-                history.setVideoTitle(video.getTitle());
-                history.setVideoUrl(video.getVideoUrl());
-                history.setSourcePlatform(video.getSource());
-                history.setRelevanceScore(video.getRelevanceScore());
-                history.setSpecialNeeds(specialNeeds);
-                history.setChildAge(childAge);
-                history.setLearningGoal(learningGoal);
-                return history;
-            })
-            .toList();
-        
+    public void saveRecommendations(String userId, List<RecommendationHistory> histories) {
+        histories.forEach(history -> history.setUserId(userId));
         recommendationHistoryRepository.saveAll(histories);
-        log.info("批量保存推荐历史: userId={}, count={}", userId, videos.size());
+        log.info("批量保存推荐历史: userId={}, count={}", userId, histories.size());
     }
     
     /**
      * 记录用户评分
      */
     public void recordUserRating(String userId, String videoId, int rating) {
-        List<RecommendationHistory> histories = recommendationHistoryRepository
-            .findByVideoIdOrderByCreatedAtDesc(videoId);
+        List<RecommendationHistory> histories = recommendationHistoryRepository.findByVideoIdOrderByCreatedAtDesc(videoId);
         
         // 找到该用户的推荐记录
         RecommendationHistory userHistory = histories.stream()
@@ -85,7 +51,7 @@ public class RecommendationHistoryService {
         if (userHistory != null) {
             userHistory.setUserRating(rating);
             recommendationHistoryRepository.save(userHistory);
-            log.info("用户评分已记录: userId={}, videoId={}, rating={}", userId, videoId, rating);
+            log.info("记录用户评分: userId={}, videoId={}, rating={}", userId, videoId, rating);
         } else {
             log.warn("未找到用户的推荐记录: userId={}, videoId={}", userId, videoId);
         }
@@ -99,7 +65,7 @@ public class RecommendationHistoryService {
     }
     
     /**
-     * 获取用户已评分的推荐历史
+     * 获取用户已评分的推荐
      */
     public List<RecommendationHistory> getUserRatedRecommendations(String userId) {
         return recommendationHistoryRepository.findByUserIdAndUserRatingIsNotNullOrderByCreatedAtDesc(userId);
@@ -124,7 +90,6 @@ public class RecommendationHistoryService {
      */
     public List<RecommendationHistory> getRecommendationsInTimeRange(
         String userId, LocalDateTime startTime, LocalDateTime endTime) {
-        return recommendationHistoryRepository.findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(
-            userId, startTime, endTime);
+        return recommendationHistoryRepository.findByUserIdAndCreatedAtBetweenOrderByCreatedAtDesc(userId, startTime, endTime);
     }
 }
