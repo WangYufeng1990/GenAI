@@ -152,10 +152,4 @@ public class ApiConfig {
     public ChatClient chatClient(ChatModel chatModel) {
         return ChatClient.builder(chatModel).build();
     }
-    
-    // CacheManager Bean 配置
-    @Bean
-    public CacheManager cacheManager() {
-        return new ConcurrentMapCacheManager("videoCache", "searchCache", "userCache");
-    }
 }

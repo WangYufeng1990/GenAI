@@ -3,6 +3,7 @@ package com.martin.genAiAgent.controller;
 import com.martin.genAiAgent.model.User;
 import com.martin.genAiAgent.repository.UserRepository;
 import com.martin.genAiAgent.security.JwtTokenUtil;
+import com.martin.genAiAgent.service.PerformanceMonitoringService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +29,7 @@ public class AuthController {
     private final UserDetailsService userDetailsService;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PerformanceMonitoringService performanceMonitoringService;
     
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
@@ -41,6 +43,9 @@ public class AuthController {
                 .orElseThrow(() -> new RuntimeException("用户不存在"));
             
             String token = jwtTokenUtil.generateToken(userDetails);
+            
+            // 记录用户登录
+            performanceMonitoringService.recordUserLogin(user.getUsername());
             
             Map<String, Object> response = new HashMap<>();
             response.put("token", token);

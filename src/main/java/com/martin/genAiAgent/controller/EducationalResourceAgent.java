@@ -17,9 +17,12 @@ import com.martin.genAiAgent.service.MachineLearningRecommendationService;
 import com.martin.genAiAgent.service.ABTestingService;
 import com.martin.genAiAgent.service.UserProfileService;
 import com.martin.genAiAgent.service.RecommendationHistoryService;
+import com.martin.genAiAgent.service.CacheService;
+import com.martin.genAiAgent.service.PerformanceMonitoringService;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.time.Duration;
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -39,6 +42,8 @@ public class EducationalResourceAgent {
     private final ABTestingService abTestingService;
     private final UserProfileService userProfileService;
     private final RecommendationHistoryService recommendationHistoryService;
+    private final CacheService cacheService;
+    private final PerformanceMonitoringService performanceMonitoringService;
     
     public EducationalResourceAgent(ChatClient chatClient,
                               VideoSearchService videoSearchService,
@@ -47,7 +52,9 @@ public class EducationalResourceAgent {
                               MachineLearningRecommendationService mlRecommendationService,
                               ABTestingService abTestingService,
                               UserProfileService userProfileService,
-                              RecommendationHistoryService recommendationHistoryService) {
+                              RecommendationHistoryService recommendationHistoryService,
+                              CacheService cacheService,
+                              PerformanceMonitoringService performanceMonitoringService) {
         this.chatClient = chatClient;
         this.videoSearchService = videoSearchService;
         this.vectorSearchService = vectorSearchService;
@@ -56,6 +63,8 @@ public class EducationalResourceAgent {
         this.abTestingService = abTestingService;
         this.userProfileService = userProfileService;
         this.recommendationHistoryService = recommendationHistoryService;
+        this.cacheService = cacheService;
+        this.performanceMonitoringService = performanceMonitoringService;
     }
     
     /**
@@ -75,6 +84,24 @@ public class EducationalResourceAgent {
         // 验证用户权限 - 只能访问自己的数据
         String currentUsername = authentication.getName();
         log.info("用户 {} 请求教育资源推荐，目标用户ID: {}", currentUsername, userId);
+        
+        // 记录API请求
+        performanceMonitoringService.recordApiRequest("/agent/educational-resources", "GET");
+        
+        // 检查缓存
+        String cacheKey = String.format("%s_%s_%s_%s", userId, childAge, specialNeeds, learningGoal);
+        List<VideoResource> cachedResults = cacheService.getCachedSearchResults(learningGoal, specialNeeds, childAge);
+        if (cachedResults != null) {
+            performanceMonitoringService.recordCacheHit("videoSearch");
+            log.info("使用缓存结果: userId={}, size={}", userId, cachedResults.size());
+            return Flux.fromIterable(cachedResults)
+                    .take(maxResults)
+                    .map(this::formatRecommendation);
+        }
+        
+        performanceMonitoringService.recordCacheMiss("videoSearch");
+        
+        long startTime = System.currentTimeMillis();
         
         // 1. 创建或更新用户画像
         com.martin.genAiAgent.model.UserProfile profile = userProfileService.saveOrUpdateUserProfile(
@@ -100,6 +127,14 @@ public class EducationalResourceAgent {
                                     // 5. 保存推荐历史
                                     recommendationHistoryService.saveRecommendations(userId, rankedVideos, 
                                         specialNeeds, childAge, learningGoal);
+                                    
+                                    // 6. 缓存结果
+                                    cacheService.cacheSearchResults(learningGoal, specialNeeds, childAge, rankedVideos);
+                                    
+                                    // 7. 记录性能指标
+                                    long duration = System.currentTimeMillis() - startTime;
+                                    performanceMonitoringService.recordRecommendationTime(Duration.ofMillis(duration));
+                                    performanceMonitoringService.recordRecommendationGenerated(userId, rankedVideos.size());
                                     
                                     return Flux.fromIterable(rankedVideos);
                                 });
@@ -303,6 +338,32 @@ public class EducationalResourceAgent {
                     Collectors.counting()
                 ));
             stats.put("sourceStats", sourceStats);
+            
+            return stats;
+        });
+    }
+    
+    /**
+     * 获取性能监控信息
+     */
+    @GetMapping("/performance")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Mono<Map<String, Object>> getPerformanceStats(Authentication authentication) {
+        String currentUsername = authentication.getName();
+        log.info("管理员 {} 查询性能统计", currentUsername);
+        
+        return Mono.fromCallable(() -> {
+            Map<String, Object> stats = new HashMap<>();
+            
+            // 获取性能统计
+            PerformanceMonitoringService.PerformanceStats perfStats = performanceMonitoringService.getPerformanceStats();
+            
+            // 获取缓存统计
+            Map<String, Object> cacheStats = cacheService.getCacheStats();
+            
+            stats.put("performance", perfStats);
+            stats.put("cache", cacheStats);
+            stats.put("timestamp", System.currentTimeMillis());
             
             return stats;
         });

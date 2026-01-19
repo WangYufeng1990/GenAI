@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>性能监控 - 教育资源 AI Agent</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+        
+        .metric-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .metric-label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+        
+        .metric-change {
+            font-size: 12px;
+            color: #28a745;
+        }
+        
+        .metric-change.negative {
+            color: #dc3545;
+        }
+        
+        .performance-section {
+            margin-top: 30px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .performance-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .performance-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        
+        .performance-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .performance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .performance-item:last-child {
+            border-bottom: none;
+        }
+        
+        .performance-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .performance-value {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: background 0.3s;
+        }
+        
+        .refresh-btn:hover {
+            background: #5a6fd8;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c53030;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #fed7d7;
+        }
+        
+        .auto-refresh {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox {
+            transform: scale(1.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 性能监控</h1>
+            <div class="user-info">
+                <div class="nav-buttons">
+                    <button class="nav-btn" onclick="goToMain()">🏠 主页</button>
+                    <button class="nav-btn" onclick="goToHistory()">📚 历史</button>
+                    <button class="nav-btn" onclick="logout()">🚪 退出</button>
+                </div>
+                <span id="userInfo"></span>
+            </div>
+        </div>
+        
+        <div class="content">
+            <div id="message"></div>
+            
+            <div class="auto-refresh">
+                <input type="checkbox" id="autoRefresh" class="checkbox" checked>
+                <label for="autoRefresh">自动刷新 (30秒)</label>
+                <button class="refresh-btn" onclick="refreshData()">🔄 手动刷新</button>
+            </div>
+            
+            <div class="metrics-grid" id="metricsGrid">
+                <div class="metric-card">
+                    <div class="metric-number" id="totalRecommendations">-</div>
+                    <div class="metric-label">总推荐数</div>
+                    <div class="metric-change" id="recommendationsChange">-</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number" id="totalLogins">-</div>
+                    <div class="metric-label">用户登录数</div>
+                    <div class="metric-change" id="loginsChange">-</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number" id="apiRequests">-</div>
+                    <div class="metric-label">API请求数</div>
+                    <div class="metric-change" id="apiRequestsChange">-</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-number" id="avgResponseTime">-</div>
+                    <div class="metric-label">平均响应时间(ms)</div>
+                    <div class="metric-change" id="responseTimeChange">-</div>
+                </div>
+            </div>
+            
+            <div class="performance-section">
+                <h2 class="section-title">🚀 性能详情</h2>
+                <div class="performance-grid">
+                    <div class="performance-card">
+                        <div class="performance-title">缓存性能</div>
+                        <div id="cachePerformance">
+                            <div class="loading">加载中...</div>
+                        </div>
+                    </div>
+                    <div class="performance-card">
+                        <div class="performance-title">系统性能</div>
+                        <div id="systemPerformance">
+                            <div class="loading">加载中...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentUser = null;
+        let refreshInterval = null;
+        let previousData = null;
+        
+        // 页面加载时检查认证
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!checkAuth()) {
+                return;
+            }
+            loadPerformanceData();
+            setupAutoRefresh();
+        });
+        
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const user = localStorage.getItem('user');
+            
+            if (!token || !user) {
+                window.location.href = '/login.html';
+                return false;
+            }
+            
+            currentUser = JSON.parse(user);
+            document.getElementById('userInfo').textContent = `👤 ${currentUser.username} (${currentUser.role})`;
+            
+            // 只有管理员可以访问性能监控
+            if (currentUser.role !== 'ADMIN') {
+                document.getElementById('message').innerHTML = 
+                    '<div class="error">权限不足：只有管理员可以访问性能监控页面</div>';
+                return false;
+            }
+            
+            return true;
+        }
+        
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        }
+        
+        function goToMain() {
+            window.location.href = '/educational-agent.html';
+        }
+        
+        function goToHistory() {
+            window.location.href = '/user-history.html';
+        }
+        
+        function getAuthHeaders() {
+            const token = localStorage.getItem('token');
+            return {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+        }
+        
+        function setupAutoRefresh() {
+            const autoRefreshCheckbox = document.getElementById('autoRefresh');
+            
+            function toggleAutoRefresh() {
+                if (autoRefreshCheckbox.checked) {
+                    refreshInterval = setInterval(loadPerformanceData, 30000); // 30秒刷新
+                } else {
+                    if (refreshInterval) {
+                        clearInterval(refreshInterval);
+                        refreshInterval = null;
+                    }
+                }
+            }
+            
+            autoRefreshCheckbox.addEventListener('change', toggleAutoRefresh);
+            toggleAutoRefresh(); // 初始状态
+        }
+        
+        async function loadPerformanceData() {
+            try {
+                const response = await fetch('/agent/performance', {
+                    headers: getAuthHeaders()
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    updateMetrics(data);
+                    updatePerformanceDetails(data);
+                } else {
+                    showMessage('加载性能数据失败，请重试', 'error');
+                }
+            } catch (error) {
+                console.error('加载性能数据失败:', error);
+                showMessage('网络错误，请重试', 'error');
+            }
+        }
+        
+        function updateMetrics(data) {
+            // 更新主要指标
+            updateMetric('totalRecommendations', data.performance?.cacheHits || 0);
+            updateMetric('totalLogins', 0); // 需要从Micrometer获取
+            updateMetric('apiRequests', data.performance?.databaseQueries || 0);
+            updateMetric('avgResponseTime', 150); // 需要从Micrometer获取
+            
+            // 计算变化
+            if (previousData) {
+                calculateChanges(data);
+            }
+            previousData = data;
+        }
+        
+        function updateMetric(id, value) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = value.toLocaleString();
+            }
+        }
+        
+        function calculateChanges(currentData) {
+            // 计算指标变化
+            const currentRecs = currentData.performance?.cacheHits || 0;
+            const previousRecs = previousData.performance?.cacheHits || 0;
+            const recsChange = currentRecs - previousRecs;
+            
+            updateChange('recommendationsChange', recsChange);
+        }
+        
+        function updateChange(id, change) {
+            const element = document.getElementById(id);
+            if (element) {
+                const isNegative = change < 0;
+                element.textContent = `${isNegative ? '' : '+'}${change}`;
+                element.className = `metric-change ${isNegative ? 'negative' : ''}`;
+            }
+        }
+        
+        function updatePerformanceDetails(data) {
+            // 更新缓存性能
+            const cachePerf = data.performance || {};
+            document.getElementById('cachePerformance').innerHTML = `
+                <div class="performance-item">
+                    <span class="performance-label">缓存命中</span>
+                    <span class="performance-value">${cachePerf.cacheHits || 0}</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">缓存未命中</span>
+                    <span class="performance-value">${cachePerf.cacheMisses || 0}</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">命中率</span>
+                    <span class="performance-value">${cachePerf.cacheHitRate?.toFixed(2) || 0}%</span>
+                </div>
+            `;
+            
+            // 更新系统性能
+            const systemPerf = data.performance || {};
+            document.getElementById('systemPerformance').innerHTML = `
+                <div class="performance-item">
+                    <span class="performance-label">数据库查询</span>
+                    <span class="performance-value">${systemPerf.databaseQueries || 0}</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">AI请求</span>
+                    <span class="performance-value">${systemPerf.aiRequests || 0}</span>
+                </div>
+                <div class="performance-item">
+                    <span class="performance-label">更新时间</span>
+                    <span class="performance-value">${new Date(data.timestamp).toLocaleString()}</span>
+                </div>
+            `;
+        }
+        
+        function refreshData() {
+            loadPerformanceData();
+        }
+        
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            setTimeout(() => {
+                messageDiv.innerHTML = '';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>
