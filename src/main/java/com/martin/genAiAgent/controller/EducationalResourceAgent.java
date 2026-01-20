@@ -23,7 +23,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.time.Duration;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Educational Resource AI Agent
@@ -31,8 +32,9 @@ import lombok.extern.slf4j.Slf4j;
  */
 @RestController
 @RequestMapping("/agent")
-@Slf4j
 public class EducationalResourceAgent {
+    
+    private static final Logger log = LoggerFactory.getLogger(EducationalResourceAgent.class);
     
     private final ChatClient chatClient;
     private final VideoSearchService videoSearchService;
@@ -70,19 +72,19 @@ public class EducationalResourceAgent {
     /**
      * Agent 主入口 - 智能教育资源推荐
      */
+    @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST})
     @RequestMapping(value = "/educational-resources", method = {RequestMethod.GET, RequestMethod.POST}, produces = "text/event-stream")
-    @PreAuthorize("hasRole('PARENT')")
     public Flux<String> findEducationalResources(
             @RequestParam String userId,
             @RequestParam String childAge,
             @RequestParam String specialNeeds,
             @RequestParam String learningGoal,
-            @RequestParam(defaultValue = "5") int maxResults,
-            Authentication authentication
+            @RequestParam(defaultValue = "5") int maxResults
     ) {
         
-        // 验证用户权限 - 只能访问自己的数据
-        String currentUsername = authentication.getName();
+        // 获取当前用户信息（可能为空，用于公开访问）
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String currentUsername = authentication != null ? authentication.getName() : "anonymous";
         log.info("用户 {} 请求教育资源推荐，目标用户ID: {}", currentUsername, userId);
         
         // 记录API请求

@@ -4,8 +4,8 @@ import com.martin.genAiAgent.model.User;
 import com.martin.genAiAgent.repository.UserRepository;
 import com.martin.genAiAgent.security.JwtTokenUtil;
 import com.martin.genAiAgent.service.PerformanceMonitoringService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -20,9 +20,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-@RequiredArgsConstructor
-@Slf4j
 public class AuthController {
+    
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
     
     private final AuthenticationManager authenticationManager;
     private final JwtTokenUtil jwtTokenUtil;
@@ -30,6 +30,20 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final PerformanceMonitoringService performanceMonitoringService;
+    
+    public AuthController(AuthenticationManager authenticationManager, 
+                        JwtTokenUtil jwtTokenUtil,
+                        UserDetailsService userDetailsService,
+                        UserRepository userRepository,
+                        PasswordEncoder passwordEncoder,
+                        PerformanceMonitoringService performanceMonitoringService) {
+        this.authenticationManager = authenticationManager;
+        this.jwtTokenUtil = jwtTokenUtil;
+        this.userDetailsService = userDetailsService;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.performanceMonitoringService = performanceMonitoringService;
+    }
     
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {

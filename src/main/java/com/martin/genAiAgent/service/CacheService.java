@@ -21,7 +21,7 @@ public class CacheService {
     /**
      * 缓存搜索结果
      */
-    @Cacheable(value = "videoSearch", key = "#query + '_' + #specialNeeds + '_' + #childAge")
+    // @Cacheable(value = "videoSearch", key = "#query + '_' + #specialNeeds + '_' + #childAge", unless = "#result == null")
     public List<VideoResource> getCachedSearchResults(String query, String specialNeeds, String childAge) {
         String cacheKey = generateSearchKey(query, specialNeeds, childAge);
         return searchCache.get(cacheKey);

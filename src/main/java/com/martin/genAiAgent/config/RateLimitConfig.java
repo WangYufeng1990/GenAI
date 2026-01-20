@@ -2,7 +2,8 @@ package com.martin.genAiAgent.config;
 
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -11,8 +12,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Configuration
-@Slf4j
 public class RateLimitConfig {
+    
+    private static final Logger log = LoggerFactory.getLogger(RateLimitConfig.class);
     
     // 存储不同用户的限流器
     private final Map<String, RateLimiter> userLimiters = new ConcurrentHashMap<>();

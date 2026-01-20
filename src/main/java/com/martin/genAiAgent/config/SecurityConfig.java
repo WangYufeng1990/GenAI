@@ -2,9 +2,11 @@ package com.martin.genAiAgent.config;
 
 import com.martin.genAiAgent.repository.UserRepository;
 import com.martin.genAiAgent.security.JwtAuthenticationFilter;
+import com.martin.genAiAgent.security.JwtTokenUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -17,16 +19,22 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
-@RequiredArgsConstructor
 public class SecurityConfig {
     
     private final UserRepository userRepository;
+    
+    public SecurityConfig(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
     
     @Bean
     public UserDetailsService userDetailsService() {
@@ -40,8 +48,31 @@ public class SecurityConfig {
     }
     
     @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter(jwtTokenUtil(), userDetailsService());
+    }
+    
+    @Bean
+    public JwtTokenUtil jwtTokenUtil() {
+        return new JwtTokenUtil();
+    }
+    
+    @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+    
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.addAllowedOriginPattern("*");
+        configuration.addAllowedMethod("*");
+        configuration.addAllowedHeader("*");
+        configuration.setAllowCredentials(true);
+        
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
     
     @Bean
@@ -62,7 +93,7 @@ public class SecurityConfig {
                 .requestMatchers("/error").permitAll()
                 
                 // 需要认证的端点
-                .requestMatchers("/agent/educational-resources").hasRole("PARENT")
+                .requestMatchers("/agent/educational-resources").permitAll() // 具体路径必须在通用路径之前
                 .requestMatchers("/agent/**").authenticated()
                 
                 // 管理员权限
@@ -71,7 +102,8 @@ public class SecurityConfig {
                 // 其他请求需要认证
                 .anyRequest().authenticated()
             )
-            .httpBasic(withDefaults())
+            .cors(withDefaults())
+            .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
             .build();
     }
 }
